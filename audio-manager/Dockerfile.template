@@ -1,0 +1,20 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-alpine-python:3.7-3.12
+
+WORKDIR /usr/app
+
+RUN apk update && \
+    apk add build-base alsa-lib-dev libc6-compat python3-dev && \
+    rm -rf /var/cache/apk/*
+
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY src .
+
+COPY run.sh .
+RUN chmod +x run.sh
+
+CMD ./run.sh
+
+
+

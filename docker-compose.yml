@@ -1,0 +1,25 @@
+version: '2.1'
+networks: {}
+volumes:
+    resin-data: {}
+services:
+  broker:
+    image: arm32v6/eclipse-mosquitto
+    network_mode: host
+    ports:
+      - 1883:1883
+  audio:
+    build: ./audio-manager
+    privileged: true
+    tty: true
+    restart: always
+    network_mode: host
+    volumes:
+      - 'resin-data:/data'
+    ports:
+      - "1883:1883"
+    environment:
+      MQTT_HOST: '127.0.0.1'
+      MQTT_PORT: '1883'
+    depends_on:
+      - broker

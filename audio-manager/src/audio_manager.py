@@ -8,19 +8,16 @@ import signal
 from pathlib import Path
 from threading import Thread
 
-# wave_obj = sa.WaveObject.from_wave_file("./audio/one.wav")
-# print(wave_obj)
-# while True:
-#     print("Playing...")
-#     play_obj = wave_obj.play()
-#     print(play_obj)
-#     play_obj.wait_done()
-#     time.sleep(2)
-
 
 class AudioManager:
+    """
+    A SimpleAudio wrapper with an MQTT interface.
+    Audio files must be stored in 'audio' directory alongside this file.
+    """
+
     FILE_KEY = 'file'
     AUDIO_PATH = './audio/'
+    STOP_WAIT = 0.35    # When stopping audio, we need to wait ~300ms for the PCM device to be ready again
 
     def __init__(self, mqtt_host: str = '127.0.0.1', mqtt_port: int = 1883, play_topic: str = 'audio/play',
                  stop_topic: str = 'audio/stop'):
@@ -49,14 +46,14 @@ class AudioManager:
         # stop audio
         self._client.disconnect()
 
-    def _play_audio(self, file_path):
-        logging.debug("Starting Audio")
+    def _play_audio(self, file_path: str):
+        logging.debug(f"Starting audio thread for {file_path}")
         self._wave_obj = sa.WaveObject.from_wave_file(file_path)
         self._play_obj = self._wave_obj.play()
         self._play_obj.wait_done()
-        logging.debug("Audio Complete")
+        logging.debug("Audio thread complete")
 
-    def _handle_msg(self, topic, payload):
+    def _handle_msg(self, topic: str, payload: str):
         if topic == self._play_topic:
             try:
                 json_payload = json.loads(payload)
@@ -68,7 +65,7 @@ class AudioManager:
                         if self._play_obj and self._play_obj.is_playing():
                             logging.debug("Stopping already playing audio...")
                             self._play_obj.stop()
-                            time.sleep(0.3)
+                            time.sleep(self.STOP_WAIT)
 
                         logging.info(f'Playing audio file: {file_path}')
                         t = Thread(target=self._play_audio, args=(file_path,))
